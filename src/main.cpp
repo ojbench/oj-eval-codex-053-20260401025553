@@ -1,4 +1,8 @@
-#include <bits/stdc++.h>
+#include <iostream>
+#include <queue>
+#include <string>
+#include <unordered_set>
+#include <vector>
 using namespace std;
 
 // Implement the NFA-based regex engine per README description.
@@ -227,15 +231,7 @@ public:
         parts.push_back(build_atom(ch, op));
       }
       // concatenate all parts
-      if (parts.empty()) {
-        // empty term: create NFA that matches empty string (epsilon)
-        // Implement as single state start=end
-        NFA eps;
-        eps.start = 0;
-        eps.ends.insert(0);
-        eps.transitions.resize(1);
-        alts.push_back(eps);
-      } else {
+      if (!parts.empty()) {
         NFA cur = parts[0];
         for (size_t k = 1; k < parts.size(); ++k) cur = Concatenate(cur, parts[k]);
         alts.push_back(cur);
@@ -244,12 +240,13 @@ public:
       else if (i >= regex.size()) break;
     }
     // Union all alternatives
-    if (alts.empty()) {
-      NFA eps; eps.start = 0; eps.ends.insert(0); eps.transitions.resize(1); nfa = eps;
-    } else {
+    if (!alts.empty()) {
       NFA cur = alts[0];
       for (size_t k = 1; k < alts.size(); ++k) cur = Union(cur, alts[k]);
       nfa = cur;
+    } else {
+      // Fallback minimal NFA (will reject most inputs); shouldn't occur for valid regex
+      nfa = MakeSimple('a');
     }
   }
 };
@@ -266,7 +263,11 @@ int main() {
   vector<string> tokens; string s; while (cin >> s) tokens.push_back(s);
   if (tokens.empty()) return 0;
   // Heuristic: If tokens.size() >= 2 and tokens[1] is digits, then form1: regex, m, then m strings
-  auto is_digits = [](const string &x){ return !x.empty() && all_of(x.begin(), x.end(), ::isdigit); };
+  auto is_digits = [](const string &x){
+    if (x.empty()) return false;
+    for (char c : x) if (!(c >= '0' && c <= '9')) return false;
+    return true;
+  };
   size_t idx = 0;
   if (is_digits(tokens[0])) {
     int n = stoi(tokens[0]);
@@ -296,4 +297,3 @@ int main() {
   }
   return 0;
 }
-
